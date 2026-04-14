@@ -3,7 +3,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
-
+#include <sys/types.h>
 struct Server
 {
     int domain;

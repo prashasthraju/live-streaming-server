@@ -22,7 +22,7 @@ struct HTTPReqest
     char *URI;
     float HTTPVersion;
     struct Dictionary header_fields;
-}
+};
 
 struct HTTPRequest http_request_constructor(char *request_string);
 
