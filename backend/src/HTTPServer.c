@@ -1,21 +1,4 @@
-//
-// ==================================
-// libeom
-//
-// an open source c library.
-// ==================================
-//
-// HTTPServer.c
-//
-// Eric Meehan
-// 2/21/21
-//
-//
 
-/*
- The HTTPServer struct is the basis for servers intended to read and recieve HTTP protocols.
- To utilize the server, instantiate an HTTPServer object with the constructor, register routes with the member method, and launch the server.
- */
 
 #include "HTTPServer.h"
 #include "../../Systems/ThreadPool.h"
