@@ -1309,8 +1309,14 @@ int main(int argc, char **argv) {
     int port = DEFAULT_PORT;
     if (argc >= 2) snprintf(g_video_dir, sizeof(g_video_dir), "%s", argv[1]);
     if (argc >= 3) {
-        port = atoi(argv[2]);
-        if (port <= 0) port = DEFAULT_PORT;
+        char *end = NULL;
+        errno = 0;
+        long parsed = strtol(argv[2], &end, 10);
+        if (errno == 0 && end != argv[2] && end && *end == '\0' && parsed > 0 && parsed <= 65535) {
+            port = (int)parsed;
+        } else {
+            port = DEFAULT_PORT;
+        }
     }
     ensure_users_db();
     int server = socket(AF_INET, SOCK_STREAM, 0);
