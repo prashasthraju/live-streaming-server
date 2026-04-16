@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Login</title><link rel="stylesheet" href="/style.css"></head><body>
+<h1>Login</h1><a href="/">Home</a>
+<form id="f"><input name="username" placeholder="username" required><br><input name="password" type="password" placeholder="password" required><br><button>Login</button></form>
+<button id="logout" type="button">Logout</button> <span id="msg"></span>
+<script>
+const msg=document.getElementById('msg');
+document.getElementById('f').onsubmit=async(e)=>{e.preventDefault();const b=new URLSearchParams(new FormData(e.target));const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});msg.textContent=(await r.text());};
+document.getElementById('logout').onclick=async()=>{await fetch('/api/auth/logout',{method:'POST'});msg.textContent='Logged out';};
+</script>
+</body></html>

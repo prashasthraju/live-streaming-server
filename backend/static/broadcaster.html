@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Broadcaster</title><link rel="stylesheet" href="/style.css"></head><body>
+<h1>Broadcaster</h1><a href="/">Home</a><a href="/live.html">Viewer Page</a>
+<p>Login is required to broadcast.</p>
+<button id="start">Start Broadcast</button><button id="stop">Stop</button><span id="msg"></span>
+<script>
+let mediaRecorder,stream;
+const msg=document.getElementById('msg');
+async function sendChunk(blob){await fetch('/api/live/broadcast',{method:'POST',headers:{'Content-Type':'video/webm'},body:blob});}
+document.getElementById('start').onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});mediaRecorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8,opus'});mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)sendChunk(e.data).catch(()=>{});};mediaRecorder.start(1000);msg.textContent='Broadcasting...';}catch(e){msg.textContent='Unable to start broadcast: '+e;}};
+document.getElementById('stop').onclick=()=>{if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();if(stream)stream.getTracks().forEach(t=>t.stop());msg.textContent='Stopped';};
+</script>
+</body></html>

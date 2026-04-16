@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Videos</title><link rel="stylesheet" href="/style.css"></head><body>
+<h1>Videos</h1><a href="/">Home</a><ul id="list"></ul><video id="player" controls></video>
+<script>
+fetch('/api/videos').then(r=>r.json()).then(data=>{const ul=document.getElementById('list');data.videos.forEach(v=>{const li=document.createElement('li');const a=document.createElement('a');a.href='#';a.textContent=`${v.name} (${v.size} bytes)`;a.onclick=(e)=>{e.preventDefault();document.getElementById('player').src='/videos/'+encodeURIComponent(v.name);document.getElementById('player').play();};li.appendChild(a);ul.appendChild(li);});});
+</script>
+</body></html>
