@@ -2,7 +2,7 @@
 #define PeerToPeer_h
 
 #include "Server.h"
-#include "../../DataStructures/Lists/LinkedList.h"
+#include "../DataStructures/Lists/LinkedList.h"
 
 struct PeerToPeer
 {

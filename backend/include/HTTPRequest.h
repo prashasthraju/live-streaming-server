@@ -1,39 +1,40 @@
+//
+// ==================================
+// libeom
+//
+// an open source c library.
+// ==================================
+//
+// HTTPRequest.h
+//
+// Eric Meehan
+// 2/9/21
+//
+//
 
+/*
+ The HTTPRequest struct contains three dictionaries representing the three components of an HTTP Request.
+ */
 
-#ifndef Server_h
-#define Server_h
+#ifndef HTTPRequest_h
+#define HTTPRequest_h
 
-#include "../../DataStructures/Dictionary/Dictionary.h"
+#include "../DataStructures/Dictionary/Dictionary.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 // MARK: DATA TYPES
 
-struct Server
+struct HTTPRequest
 {
-    /* PUBLIC MEMBER VARIABLES */
-    int domain;
-    int service;
-    int protocol;
-    u_long interface;
-    int port;
-    int backlog;
-    struct sockaddr_in address;
-    int socket;
-    
-    struct Dictionary routes;
-    
-    void (*register_routes)(struct Server *server, char *(*route_function)(void *arg), char *path);
+    struct Dictionary request_line;
+    struct Dictionary header_fields;
+    struct Dictionary body;
 };
 
-struct ServerRoute
-{
-    char * (*route_function)(void *arg);
-};
 
 // MARK: CONSTRUCTORS
 
-struct Server server_constructor(int domain, int service, int protocol, u_long interface, int port, int backlog);
+struct HTTPRequest http_request_constructor(char *request_string);
+void http_request_destructor(struct HTTPRequest *request);
 
-#endif /* Server_h */
+#endif /* HTTPRequest_h */

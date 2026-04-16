@@ -3,7 +3,7 @@
 #ifndef Server_h
 #define Server_h
 
-#include "../../DataStructures/Dictionary/Dictionary.h"
+#include "../DataStructures/Dictionary/Dictionary.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>

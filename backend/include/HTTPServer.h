@@ -2,7 +2,7 @@
 #define HTTPServer_h
 
 #include "Server.h"
-#include "../Protocols/HTTPRequest.h"
+#include "HTTPRequest.h"
 
 // MARK: DATA TYPES
 
