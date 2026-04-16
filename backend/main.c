@@ -777,6 +777,7 @@ static void serve_static_file(int client, const struct HttpRequest *req, const c
                  "HTTP/1.1 304 Not Modified\r\nETag: %s\r\nCache-Control: public, max-age=30\r\nConnection: close\r\n\r\n",
                  etag);
         send_all(client, header, strlen(header));
+        close(fd);
         return;
     }
     const char *ims = req_header(req, "if-modified-since");
@@ -788,6 +789,7 @@ static void serve_static_file(int client, const struct HttpRequest *req, const c
                      "HTTP/1.1 304 Not Modified\r\nETag: %s\r\nCache-Control: public, max-age=30\r\nConnection: close\r\n\r\n",
                      etag);
             send_all(client, header, strlen(header));
+            close(fd);
             return;
         }
     }
