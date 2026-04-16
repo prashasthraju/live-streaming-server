@@ -289,9 +289,7 @@ static int fill_random(unsigned char *buf, size_t len) {
         close(fd);
         return n == (ssize_t)len ? 0 : -1;
     }
-    srand((unsigned int)(time(NULL) ^ getpid()));
-    for (size_t i = 0; i < len; i++) buf[i] = (unsigned char)(rand() & 0xFF);
-    return 0;
+    return -1;
 }
 
 static void hex_encode(const unsigned char *src, size_t len, char *dst, size_t dst_len) {
@@ -545,7 +543,7 @@ static int user_exists(const char *username) {
 
 static int register_user(const char *username, const char *password) {
     if (!is_safe_username(username)) return -1;
-    if (!password || strlen(password) < 6 || strlen(password) > 128) return -1;
+    if (!password || strlen(password) < 8 || strlen(password) > 128) return -1;
     ensure_users_db();
     if (user_exists(username)) return 1;
     unsigned char salt[16];
@@ -708,14 +706,31 @@ static char *video_list_json(void) {
         return NULL;
     }
     size_t n = 0;
-    n += snprintf(json + n, cap - n, "{\"videos\":[");
+    int wrote = snprintf(json + n, cap - n, "{\"videos\":[");
+    if (wrote < 0 || (size_t)wrote >= cap - n) {
+        pthread_mutex_unlock(&g_video_cache_lock);
+        free(json);
+        return NULL;
+    }
+    n += (size_t)wrote;
     for (int i = 0; i < g_video_cache.count; i++) {
         char esc[512];
         json_escape(g_video_cache.items[i].name, esc, sizeof(esc));
-        n += snprintf(json + n, cap - n, "%s{\"name\":\"%s\",\"size\":%lld,\"duration\":null}",
-                      i ? "," : "", esc, (long long)g_video_cache.items[i].size);
+        wrote = snprintf(json + n, cap - n, "%s{\"name\":\"%s\",\"size\":%lld,\"duration\":null}",
+                         i ? "," : "", esc, (long long)g_video_cache.items[i].size);
+        if (wrote < 0 || (size_t)wrote >= cap - n) {
+            pthread_mutex_unlock(&g_video_cache_lock);
+            free(json);
+            return NULL;
+        }
+        n += (size_t)wrote;
     }
-    n += snprintf(json + n, cap - n, "]}");
+    wrote = snprintf(json + n, cap - n, "]}");
+    if (wrote < 0 || (size_t)wrote >= cap - n) {
+        pthread_mutex_unlock(&g_video_cache_lock);
+        free(json);
+        return NULL;
+    }
     pthread_mutex_unlock(&g_video_cache_lock);
     return json;
 }
@@ -737,8 +752,15 @@ static int parse_http_date(const char *s, time_t *out) {
 }
 
 static void serve_static_file(int client, const struct HttpRequest *req, const char *full_path) {
+    int fd = open(full_path, O_RDONLY);
+    if (fd < 0) {
+        send_simple_response(client, 404, "Not Found", "text/plain; charset=utf-8", "Not Found");
+        return;
+    }
+
     struct stat st;
-    if (stat(full_path, &st) != 0 || !S_ISREG(st.st_mode)) {
+    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) {
+        close(fd);
         send_simple_response(client, 404, "Not Found", "text/plain; charset=utf-8", "Not Found");
         return;
     }
@@ -765,11 +787,6 @@ static void serve_static_file(int client, const struct HttpRequest *req, const c
             return;
         }
     }
-    int fd = open(full_path, O_RDONLY);
-    if (fd < 0) {
-        send_simple_response(client, 500, "Internal Server Error", "text/plain; charset=utf-8", "Failed to open file");
-        return;
-    }
     char lm[64];
     now_http_date(lm, sizeof(lm), st.st_mtime);
     char header[1024];
@@ -794,14 +811,15 @@ static void serve_video_file(int client, const struct HttpRequest *req, const ch
     }
     char full[1024];
     snprintf(full, sizeof(full), "%s/%s", g_video_dir, filename);
-    struct stat st;
-    if (stat(full, &st) != 0 || !S_ISREG(st.st_mode)) {
+    int fd = open(full, O_RDONLY);
+    if (fd < 0) {
         send_simple_response(client, 404, "Not Found", "text/plain; charset=utf-8", "Video not found");
         return;
     }
-    int fd = open(full, O_RDONLY);
-    if (fd < 0) {
-        send_simple_response(client, 500, "Internal Server Error", "text/plain; charset=utf-8", "Failed to open video");
+    struct stat st;
+    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) {
+        close(fd);
+        send_simple_response(client, 404, "Not Found", "text/plain; charset=utf-8", "Video not found");
         return;
     }
     off_t start = 0;
