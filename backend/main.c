@@ -342,6 +342,10 @@ static int form_value(const unsigned char *body, size_t body_len, const char *ke
         url_decode(k);
         url_decode(v);
         if (strcmp(k, key) == 0) {
+            if (strlen(v) >= out_len) {
+                free(tmp);
+                return -2;
+            }
             snprintf(out, out_len, "%s", v);
             found = 1;
             break;
@@ -904,6 +908,10 @@ static void broadcast_live_chunk(const unsigned char *data, size_t len) {
     pthread_mutex_lock(&g_live_lock);
     char chunk_head[64];
     int head_n = snprintf(chunk_head, sizeof(chunk_head), "%zx\r\n", len);
+    if (head_n <= 0 || (size_t)head_n >= sizeof(chunk_head)) {
+        pthread_mutex_unlock(&g_live_lock);
+        return;
+    }
     for (int i = 0; i < MAX_LIVE_VIEWERS; i++) {
         if (!g_live_viewers[i].active) continue;
         int fd = g_live_viewers[i].fd;
@@ -1005,8 +1013,9 @@ static void handle_register(int client, const struct HttpRequest *req) {
     }
     char username[64] = {0};
     char password[128] = {0};
-    if (form_value(req->body, req->body_len, "username", username, sizeof(username)) != 0 ||
-        form_value(req->body, req->body_len, "password", password, sizeof(password)) != 0) {
+    int u = form_value(req->body, req->body_len, "username", username, sizeof(username));
+    int p = form_value(req->body, req->body_len, "password", password, sizeof(password));
+    if (u != 0 || p != 0) {
         send_json_status(client, 400, "Bad Request", "{\"error\":\"username and password are required\"}");
         return;
     }
@@ -1023,8 +1032,9 @@ static void handle_login(int client, const struct HttpRequest *req) {
     }
     char username[64] = {0};
     char password[128] = {0};
-    if (form_value(req->body, req->body_len, "username", username, sizeof(username)) != 0 ||
-        form_value(req->body, req->body_len, "password", password, sizeof(password)) != 0) {
+    int u = form_value(req->body, req->body_len, "username", username, sizeof(username));
+    int p = form_value(req->body, req->body_len, "password", password, sizeof(password));
+    if (u != 0 || p != 0) {
         send_json_status(client, 400, "Bad Request", "{\"error\":\"username and password are required\"}");
         return;
     }
@@ -1085,7 +1095,12 @@ static void handle_chat_send(int client, const struct HttpRequest *req) {
     char username[64];
     if (!require_auth_json(client, req, username, sizeof(username))) return;
     char message[MAX_MSG_LEN] = {0};
-    if (form_value(req->body, req->body_len, "message", message, sizeof(message)) != 0) {
+    int m = form_value(req->body, req->body_len, "message", message, sizeof(message));
+    if (m == -2) {
+        send_json_status(client, 400, "Bad Request", "{\"error\":\"message too long\"}");
+        return;
+    }
+    if (m != 0) {
         send_json_status(client, 400, "Bad Request", "{\"error\":\"message is required\"}");
         return;
     }
