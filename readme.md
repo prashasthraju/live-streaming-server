@@ -158,3 +158,24 @@ Key implementation details:
 - `pthreads` — included in standard glibc, no extra install needed
 
 ---
+
+## ✅ Current implementation in this repository
+
+The active server entrypoint is `backend/main.c` (run with `gcc -O2 -pthread -o stream_server main.c` in `backend/`).
+
+It now includes:
+- Static video listing at `GET /api/videos`
+- Seekable video serving with Range support at `GET /videos/<filename>`
+- Simple file-backed auth (`db/users.db`) via:
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `POST /api/auth/logout`
+  - `GET /api/auth/whoami`
+- Single-channel live ingest/watch:
+  - `POST /api/live/broadcast` (auth required)
+  - `GET /api/live/watch` (chunked stream)
+- Real-time chat:
+  - `GET /api/chat/stream` (SSE + recent backlog)
+  - `POST /api/chat/send` (auth required)
+- Static frontend pages:
+  - `/`, `/login.html`, `/register.html`, `/videos.html`, `/live.html`, `/broadcaster.html`

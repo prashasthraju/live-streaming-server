@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Live Viewer</title><link rel="stylesheet" href="/style.css"></head><body>
+<h1>Live Viewer</h1><a href="/">Home</a><a href="/broadcaster.html">Broadcaster</a>
+<div class="row"><div><video id="live" controls autoplay muted src="/api/live/watch"></video></div>
+<div class="chat"><div class="messages" id="messages"></div>
+<form id="chatForm"><input name="message" maxlength="240" placeholder="Chat message"><button>Send</button></form><div id="chatMsg"></div></div></div>
+<script>
+const msgs=document.getElementById('messages');
+const es=new EventSource('/api/chat/stream');
+es.addEventListener('message',(e)=>{const d=JSON.parse(e.data);const p=document.createElement('div');p.textContent=`[${d.timestamp}] ${d.user}: ${d.message}`;msgs.appendChild(p);msgs.scrollTop=msgs.scrollHeight;});
+document.getElementById('chatForm').onsubmit=async(e)=>{e.preventDefault();const b=new URLSearchParams(new FormData(e.target));const r=await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});document.getElementById('chatMsg').textContent=await r.text();e.target.reset();};
+</script>
+</body></html>
