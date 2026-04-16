@@ -362,9 +362,12 @@ static void json_escape(const char *src, char *dst, size_t dst_len) {
         if (c == '"' || c == '\\') {
             dst[j++] = '\\';
             dst[j++] = c;
-        } else if (c == '\n' || c == '\r') {
+        } else if (c == '\n') {
             dst[j++] = '\\';
             dst[j++] = 'n';
+        } else if (c == '\r') {
+            dst[j++] = '\\';
+            dst[j++] = 'r';
         } else if ((unsigned char)c >= 0x20) {
             dst[j++] = c;
         }
@@ -443,7 +446,17 @@ static int parse_request(int client, struct HttpRequest *req) {
     }
     size_t content_len = 0;
     const char *cl = req_header(req, "content-length");
-    if (cl) content_len = (size_t)strtoull(cl, NULL, 10);
+    if (cl) {
+        errno = 0;
+        char *endptr = NULL;
+        unsigned long long parsed = strtoull(cl, &endptr, 10);
+        if (errno != 0 || endptr == cl || (endptr && *endptr != '\0')) {
+            free(header_text);
+            free(buf);
+            return -1;
+        }
+        content_len = (size_t)parsed;
+    }
     if (content_len > MAX_BODY_SIZE) {
         free(header_text);
         free(buf);
@@ -973,7 +986,7 @@ static void chat_push_backlog(const char *username, const char *message) {
 static void chat_broadcast_json_locked(const char *json_data) {
     char packet[1024];
     int n = snprintf(packet, sizeof(packet), "event: message\ndata: %s\n\n", json_data);
-    if (n < 0) return;
+    if (n < 0 || (size_t)n >= sizeof(packet)) return;
     for (int i = 0; i < MAX_CHAT_SUBSCRIBERS; i++) {
         if (!g_chat_subscribers[i].active) continue;
         int fd = g_chat_subscribers[i].fd;
@@ -1135,7 +1148,7 @@ static int handle_chat_stream(int client) {
                  user_esc, msg_esc, g_chat_messages[idx].timestamp);
         char packet[1024];
         int n = snprintf(packet, sizeof(packet), "event: message\ndata: %s\n\n", json);
-        if (send_all(client, packet, (size_t)n) != 0) {
+        if (n < 0 || (size_t)n >= sizeof(packet) || send_all(client, packet, (size_t)n) != 0) {
             pthread_mutex_unlock(&g_chat_lock);
             chat_remove_subscriber(client);
             close(client);
